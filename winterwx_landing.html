@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Winter Weather Briefing</title>
+  <style>
+    :root {
+      --maroon: #501214;
+      --gold: #c9a227;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d1d5db;
+      --panel: #ffffff;
+      --bg: #f5f7fb;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+      
+      .overview-heading {
+        margin-bottom: 8px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .time-inline {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(280px, 420px) 1fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 26px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .video-card {
+      padding: 18px;
+    }
+
+    .video-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .video-frame iframe,
+    .video-frame video {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    .intro-card {
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: linear-gradient(135deg, #ffffff 0%, #f7f3ea 100%);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--maroon);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 3vw, 3rem);
+      line-height: 1.1;
+      color: var(--maroon);
+    }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--ink);
+      max-width: 760px;
+      margin-bottom: 18px;
+    }
+
+    .intro-card p {
+      margin: 0 0 14px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 10px 0 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--maroon);
+      color: white;
+      box-shadow: 0 8px 18px rgba(80, 18, 20, 0.22);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--maroon);
+      border: 2px solid var(--maroon);
+    }
+
+    .callout {
+      margin-top: 4px;
+      padding: 14px 16px;
+      border-left: 5px solid var(--gold);
+      background: rgba(201, 162, 39, 0.1);
+      border-radius: 10px;
+      color: var(--ink);
+    }
+
+    .section-title {
+      margin: 24px 0 12px;
+      font-size: 1.45rem;
+      color: var(--maroon);
+    }
+
+    .section-subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .weather-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0 0 4px;
+      color: var(--ink);
+      font-size: 1.2rem;
+    }
+
+    .panel-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .embed-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 360px;
+      background: #eef2f7;
+    }
+
+    .embed-wrap.tall {
+      min-height: 500px;
+    }
+
+    .embed-wrap.short {
+      min-height: 320px;
+    }
+
+      .embed-wrap iframe {
+            width: 100%;
+            height: 100%;
+            min-height: inherit;
+            border: 0;
+            display: block;
+          }
+
+          .embed-wrap img {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            display: block;
+            object-fit: contain;
+          }
+      
+    .panel-footer {
+      padding: 12px 18px 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      background: #fff;
+    }
+
+    .placeholder-note {
+      padding: 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .credit {
+      margin-top: 28px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .split-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .intro-card {
+        padding: 24px;
+      }
+
+      .time-banner {
+        white-space: normal;
+        width: 100%;
+      }
+      
+      .embed-wrap.tall {
+        min-height: 420px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 18px 12px 36px;
+      }
+
+      .video-card,
+      .intro-card,
+      .panel-header,
+      .panel-footer,
+      .placeholder-note {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .button-row {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .embed-wrap,
+      .embed-wrap.short,
+      .embed-wrap.tall {
+        min-height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+    <div class="page">
+        <section class="hero">
+            <article class="card video-card">
+                <div class="video-frame">
+                    <iframe
+                      src="https://www.youtube.com/embed/_pOzu32vwm4?rel=0"
+                      title="Texas Cold Front & Winter Precipitation: January 23, 2026"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowfullscreen>
+                    </iframe>
+                </div>
+            </article>
+            
+            <article class="card intro-card">
+                <h2 class="section-title">
+                  GEO1305 Meteorology with Prof. Tapp
+                  <span class="time-inline">
+                    <span id="localTime"></span> | <span id="utcTime"></span>
+                  </span>
+                </h2>
+                <h1>This Week's Weather Briefing</h1>
+                <p class="lead">
+                Explore an example of a winter weather event through a short video briefing,
+                play with the winter weather simulator, and then check out real-time weather data. Use this page as a starting point for understanding how large-scale conditions tie
+                into the concepts that we've been learning about in our Meteorology course.
+                </p>
+                <div class="button-row">
+                    <a class="btn btn-primary" href="/courses/123/modules" target="_self">Open Learning Modules</a>
+                    <a class="btn btn-secondary" href="#winter">Jump to Weather Simulator</a>
+                    <a class="btn btn-secondary" href="#overview">Jump to Live Weather Maps</a>
+                </div>
+                <p>
+                Focus on how temperature, dewpoint, and the DFW sounding work together to tell the full synoptic story.
+                </p>
+                <div class="callout">
+                    Suggested workflow: watch the video first, then explore the maps below from top to bottom like a real forecast briefing.
+                </div>
+            </article>
+        </section>
+        
+        <section id="winter" class="panel-grid">
+            <div class="overview-heading">
+              <h2 class="section-title">
+                Winter Weather Simulator
+              </h2>
+
+              <p class="section-subtitle">
+                Observe the changes of precipitation when you explore the vertical structure of air temperature in the troposphere to better understand how a winter storm evolves.
+              </p>
+            </div>
+            <div class="embed-wrap tall">
+                <!-- Replace with your external dashboard or embedded map URL -->
+                <iframe
+                  src="winter_precipitation_explorer.html"
+                  title="Winter Precipitation Explorer"
+                  style="width: 100%; height: 840px; border: none; display: block;"
+                  loading="lazy">
+                </iframe>
+            </div>
+        </section>
+        
+        <section id="overview" class="split-grid" style="margin-top: 22px;">
+            <article class="weather-panel">
+                <div class="panel-header">
+                    <h3>National Air Temperature</h3>
+                    <p>Track air masses, frontal contrasts, and cold air advection.</p>
+                </div>
+                <div class="embed-wrap short">
+                    <!-- Replace with an iframe or image source for national temperature -->
+                    <img src="https://data.mesonet.org/data/public/noaa/metar/maps/realtime/latest.tair.png"
+                        title="National Air Temperature Map">
+                </div>
+                <div class="panel-footer">
+                    Prompt for students: Where is the strongest temperature gradient, and how does it relate to the frontal zone?
+                </div>
+            </article>
+            
+            <article class="weather-panel">
+                <div class="panel-header">
+                    <h3>National Dewpoint Temperature</h3>
+                    <p>Identify moisture return, dry air intrusions, and humid sector placement.</p>
+                </div>
+                <div class="embed-wrap short">
+                    <!-- Replace with an iframe or image source for national dewpoint -->
+                    <img src="https://data.mesonet.org/data/public/noaa/metar/maps/realtime/latest.tdew.png" alt="National Dewpoint Temperature Map">
+                </div>
+                <div class="panel-footer">
+                    Prompt for students: Compare the dewpoint pattern to the radar and severe outlook above. Where is richer low-level moisture present?
+                </div>
+            </article>
+        </section>
+        
+        <section class="split-grid" style="margin-top: 22px;">
+            <article class="weather-panel">
+                <div class="panel-header">
+                    <h3>National Surface Conditions</h3>
+                    <p>Locate developing low-pressure centers, frontal boundaries, and wind-driven temperature advection.</p>
+                </div>
+                <div class="embed-wrap short">
+                    <!-- Replace with an iframe or image source for national temperature -->
+                    <img src="https://www.wpc.ncep.noaa.gov/sfc/namussfcwbg.gif"
+                        title="National Surface Conditions Map">
+                </div>
+                <div class="panel-footer">
+                    Find the surface Low ("L") and trace the wind direction behind vs. ahead of the cold front. Where are winds actively pushing sub-freezing air southward?
+                </div>
+            </article>
+            
+            <article class="weather-panel">
+                <div class="panel-header">
+                    <h3>National WPC Forecast (Rain, Snow & Ice)</h3>
+                    <p>Track forecasted fronts and where precipitation transitions from rain to wintry mix and snow.</p>
+                </div>
+                <div class="embed-wrap short">
+                    <!-- Replace with an iframe or image source for national dewpoint -->
+                    <img src="https://www.wpc.ncep.noaa.gov/NationalForecastChart/staticmaps/noaad1.png" alt="National Forecast Map">
+                </div>
+                <div class="panel-footer">
+                    Find the boundary where forecasted rain transitions into mix/ice and snow. How does that transition zone line up with the 32°F isotherm on the Air Temperature map?
+                </div>
+            </article>
+        </section>
+        
+
+        <section class="panel-grid" style="margin-top: 22px;">
+            <article class="weather-panel">
+                <div class="panel-header">
+                    <h2>DFW Skew-T / Sounding (00Z / 12Z)</h2>
+                    <p>Use the vertical profile to connect instability, moisture depth, wind structure, and winter-weather potential.</p>
+                </div>
+                <div class="embed-wrap">
+                    <!-- Replace with an image or iframe for the DFW skew-T -->
+                    <img src="https://weather.rap.ucar.edu/upper/displayUpper.php?img=KFWD.png&endDate=-1&endTime=-1&duration=0"
+                           alt="DFW Skew-T Sounding"
+                           loading="lazy">
+                </div>
+                <div class="panel-footer">
+                    Prompt for students: Look for inversions, dry layers, wind shear, and the freezing level. How does this sounding support the surface pattern shown above?
+                </div>
+            </article>
+        </section>
+        
+        <p class="credit">
+        Update the placeholder links with your actual video, Canvas module URL, and weather products. This layout is designed to work cleanly inside a Canvas page using the HTML editor.
+        </p>
+    </div>
+    
+    <script>
+      function updateTime() {
+        const now = new Date();
+
+        const localOptions = {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: 'America/Chicago',
+          timeZoneName: 'short'
+        };
+
+        const local = now.toLocaleString('en-US', localOptions);
+        const utcHours = String(now.getUTCHours()).padStart(2, '0');
+        const utcMinutes = String(now.getUTCMinutes()).padStart(2, '0');
+        const utc = `${utcHours}:${utcMinutes} UTC`;
+
+        document.getElementById('localTime').textContent = local;
+        document.getElementById('utcTime').textContent = utc;
+      }
+
+      updateTime();
+      setInterval(updateTime, 60000);
+    </script>
+    
+</body>
+</html>
+

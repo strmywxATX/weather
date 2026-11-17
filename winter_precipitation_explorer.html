@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Winter Precipitation & Vertical Temperature Profile Explorer</title>
+  <!-- Tailwind CSS for clean, responsive scientific-education layout -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter font for high legibility -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Custom accessible range slider styling */
+    input[type="range"].temp-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #bae6fd 0%, #e0f2fe 50%, #fed7aa 50%, #fdba74 100%);
+      outline: none;
+      cursor: pointer;
+      border: 1px solid #cbd5e1;
+      transition: box-shadow 0.15s ease;
+    }
+
+    input[type="range"].temp-slider:focus {
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+    }
+
+    input[type="range"].temp-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--thumb-color, #0284c7);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+      cursor: grab;
+      transition: transform 0.12s ease, background-color 0.15s ease;
+    }
+
+    input[type="range"].temp-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.14);
+    }
+
+    input[type="range"].temp-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.2);
+    }
+
+    input[type="range"].temp-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--thumb-color, #0284c7);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+      cursor: grab;
+      transition: transform 0.12s ease, background-color 0.15s ease;
+    }
+
+    /* Draggable SVG node styling */
+    .sounding-node {
+      cursor: grab;
+      transition: r 0.12s ease;
+      touch-action: none;
+    }
+    .sounding-node:hover {
+      r: 8.5;
+    }
+    .sounding-node.dragging {
+      cursor: grabbing;
+      r: 9.5;
+    }
+
+    /* Subtle pulse animation for challenge success */
+    @keyframes popIn {
+      0% { transform: scale(0.96); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="p-2 sm:p-4 md:p-5">
+  <!-- Main Self-Contained Embeddable Container -->
+  <div id="app-container" class="max-w-6xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+    
+    <!-- TOP HEADER: Title, Unit Toggle, and Textbook Presets -->
+    <header class="bg-slate-900 text-white px-4 py-3.5 sm:px-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-slate-800">
+      <div>
+        <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">
+          Winter Precipitation &amp; Vertical Temperature Profile Explorer
+        </h1>
+      </div>
+
+      <!-- Controls Bar: Presets + Unit Switch -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Textbook Preset Buttons -->
+        <div class="flex items-center bg-slate-800/90 p-1 rounded-xl border border-slate-700/80 gap-1" role="group" aria-label="Precipitation Presets">
+          <button type="button" data-preset="snow" class="preset-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-sky-500 text-white shadow-sm">
+            ❄️ Snow
+          </button>
+          <button type="button" data-preset="sleet" class="preset-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/70">
+            🧊 Sleet
+          </button>
+          <button type="button" data-preset="freezing_rain" class="preset-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/70">
+            🌧️❄️ Freezing Rain
+          </button>
+          <button type="button" data-preset="rain" class="preset-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/70">
+            💧 Rain
+          </button>
+        </div>
+
+        <!-- °C / °F Unit Toggle -->
+        <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700" role="group" aria-label="Temperature Unit">
+          <button type="button" id="unit-c-btn" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-sm">
+            °C
+          </button>
+          <button type="button" id="unit-f-btn" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white">
+            °F
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN TWO-COLUMN INTERACTIVE WORKSPACE -->
+    <!-- Both panels share identical vertical geometry from 3.5 km (top) to 0.0 km (ground) -->
+    <main class="p-3 sm:p-5 bg-slate-50/70">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+        
+        <!-- LEFT PANEL (7 cols on md+): Vertical Temperature Profile Sounding + Aligned Sliders -->
+        <section class="md:col-span-7 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col overflow-hidden">
+          <!-- Panel Subheader -->
+          <div class="px-4 py-2.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/60">
+            <div>
+              <h2 class="text-sm font-bold text-slate-800">1. Vertical Temperature Profile (Sounding)</h2>
+              <p class="text-xs text-slate-500">Drag nodes on the graph or use the altitude sliders to reshape the air temperature.</p>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] font-medium">
+              <span class="inline-flex items-center gap-1.5 text-sky-700">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block"></span> &lt; 0°C (Sub-freezing)
+              </span>
+              <span class="inline-flex items-center gap-1.5 text-orange-700">
+                <span class="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block"></span> &gt; 0°C (Above freezing)
+              </span>
+            </div>
+          </div>
+
+          <!-- Aligned Sounding Graph + Altitude Sliders Container -->
+          <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch">
+              
+              <!-- Interactive SVG Sounding Chart -->
+              <div class="flex-1 min-w-0">
+                <svg id="sounding-svg" viewBox="0 0 380 460" class="w-full h-[380px] sm:h-[430px] select-none overflow-visible" aria-label="Vertical Temperature Profile Chart">
+                  <defs>
+                    <!-- Clip path for the atmospheric plot area (0.0 km to 3.5 km) -->
+                    <clipPath id="plot-clip">
+                      <rect x="64" y="14" width="302" height="366" rx="6" />
+                    </clipPath>
+                  </defs>
+
+                  <!-- Background Sub-Freezing Zone (Left of 0°C, x=64 to x=215) -->
+                  <rect x="64" y="14" width="151" height="366" fill="#e0f2fe" fill-opacity="0.55" clip-path="url(#plot-clip)" />
+                  <!-- Background Above-Freezing Zone (Right of 0°C, x=215 to x=366) -->
+                  <rect x="215" y="14" width="151" height="366" fill="#ffedd5" fill-opacity="0.58" clip-path="url(#plot-clip)" />
+
+                  <!-- Zone Watermark Labels -->
+                  <text x="139" y="34" text-anchor="middle" fill="#0369a1" font-size="10.5" font-weight="700" opacity="0.75">SUB-FREEZING AIR</text>
+                  <text x="290" y="34" text-anchor="middle" fill="#c2410c" font-size="10.5" font-weight="700" opacity="0.75">ABOVE FREEZING</text>
+
+                  <!-- Dynamic Horizontal Gridlines & Y-Axis Altitude Labels -->
+                  <g id="svg-grid-y"></g>
+
+                  <!-- Dynamic Vertical Temperature Gridlines & X-Axis Labels -->
+                  <g id="svg-grid-x"></g>
+
+                  <!-- Prominent 0°C / 32°F Freezing Reference Line -->
+                  <line x1="215" y1="14" x2="215" y2="380" stroke="#0f172a" stroke-width="2" stroke-dasharray="5,4" />
+                  <g transform="translate(215, 372)">
+                    <rect x="-56" y="-14" width="112" height="18" rx="4" fill="#0f172a" />
+                    <text id="freezing-line-label" x="0" y="-2" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="700">Freezing (0°C / 32°F)</text>
+                  </g>
+
+                  <!-- Outer Plot Border -->
+                  <rect x="64" y="14" width="302" height="366" rx="6" fill="none" stroke="#cbd5e1" stroke-width="1.25" />
+
+                  <!-- Color-Coded Temperature Profile Segments (<0°C blue, >0°C warm orange/red) -->
+                  <g id="svg-profile-segments" clip-path="url(#plot-clip)"></g>
+
+                  <!-- Draggable Control Point Nodes -->
+                  <g id="svg-control-nodes"></g>
+
+                  <!-- X-Axis Title -->
+                  <text id="x-axis-title" x="215" y="424" text-anchor="middle" fill="#475569" font-size="11.5" font-weight="700">Air Temperature (°C)</text>
+                </svg>
+              </div>
+
+              <!-- Synchronized Altitude Range Sliders (Vertically aligned with 3.0, 2.2, 1.4, 0.5, 0.0 km) -->
+              <div class="sm:w-48 md:w-52 shrink-0 flex flex-col">
+                <!-- Desktop/Tablet Vertical Alignment Track matching SVG y=14 to y=380 (366/460 = 79.56% of SVG height) -->
+                <div id="slider-track-container" class="relative flex-1 min-h-[270px] sm:min-h-0">
+                  <!-- Sliders are injected/positioned via JS so their Y-centers match exact altitudes -->
+                </div>
+                <!-- Bottom Legend matching the X-axis footer height -->
+                <div class="hidden sm:flex items-center justify-center h-[58px] text-[11px] text-slate-400 text-center px-2 border-t border-slate-100 mt-1">
+                  Tip: Slide right to warm a layer; slide left to cool it.
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT PANEL (5 cols on md+): Live Animated Atmospheric Column & Surface Ground Scene -->
+        <section class="md:col-span-5 bg-white border border-slate-200 rounded-xl shadow-xs flex flex-col overflow-hidden">
+          <!-- Panel Subheader -->
+          <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between gap-2 bg-slate-50/60">
+            <div>
+              <h2 class="text-sm font-bold text-slate-800">2. Live Atmospheric Column</h2>
+              <p class="text-xs text-slate-500">Watch hydrometeors transform as they fall.</p>
+            </div>
+            <span id="live-precip-pill" class="px-2.5 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase bg-sky-100 text-sky-800 border border-sky-200">
+              Snow
+            </span>
+          </div>
+
+          <!-- Responsive High-DPI Canvas Container aligned with Left Panel -->
+          <div class="p-3 sm:p-4 flex-1 flex flex-col">
+            <div class="relative w-full h-[380px] sm:h-[430px] rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+              <canvas id="atmosphere-canvas" class="w-full h-full block"></canvas>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- BOTTOM PEDAGOGICAL EXPLANATION & SELF-CHECK STRIP -->
+      <section class="mt-4 bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <!-- Header Bar with Precipitation Outcome Badge & Quick Challenge Mode Toggle -->
+        <div class="px-4 py-3 sm:px-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/70">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Surface Outcome:</span>
+            <span id="outcome-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-extrabold bg-sky-100 text-sky-900 border border-sky-300">
+              ❄️ SNOW
+            </span>
+            <span id="outcome-tagline" class="text-xs sm:text-sm font-medium text-slate-600">
+              Sub-freezing air from cloud to ground preserves ice crystals.
+            </span>
+          </div>
+
+          <button type="button" id="challenge-toggle-btn" class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer">
+            <span>🎯</span>
+            <span id="challenge-toggle-label">Quick Challenge Mode</span>
+          </button>
+        </div>
+
+        <!-- Optional Interactive Quick Challenge Bar (Hidden until toggled on) -->
+        <div id="challenge-panel" class="hidden bg-indigo-50/80 border-b border-indigo-100 px-4 py-3 sm:px-5 animate-pop">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span id="challenge-step-badge" class="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-indigo-600 text-white">
+                  Challenge 1 of 4
+                </span>
+                <span id="challenge-status-badge" class="hidden px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white">
+                  ✓ Solved! Great job!
+                </span>
+              </div>
+              <p id="challenge-prompt" class="text-xs sm:text-sm text-slate-800 font-medium leading-snug">
+                Create <strong>Freezing Rain</strong>: keep the surface below 0°C (32°F), while warming the mid-levels enough to completely melt the snow aloft into supercooled raindrops.
+              </p>
+              <p id="challenge-hint" class="text-xs text-indigo-700/90"></p>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" id="challenge-hint-btn" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 transition-colors">
+                💡 Hint
+              </button>
+              <button type="button" id="challenge-next-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs transition-colors">
+                Next Challenge →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-Step Plain-English Vertical Journey Breakdown -->
+        <div class="p-4 sm:px-5 sm:py-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+            What's Happening in the Atmosphere? (Top-to-Bottom Journey)
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- Step 1: Cloud Formation -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                <h4 class="text-xs sm:text-sm font-bold text-slate-800">Cloud Formation (3.0 km)</h4>
+              </div>
+              <p id="step1-text" class="text-xs text-slate-600 leading-relaxed">
+                Inside the sub-freezing cloud (-9°C / 16°F), water vapor freezes directly onto microscopic particles to form delicate six-sided snowflakes.
+              </p>
+            </div>
+
+            <!-- Step 2: Mid-Level Journey -->
+            <div id="step2-card" class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 transition-colors">
+              <div class="flex items-center gap-2 mb-1">
+                <span id="step2-num" class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                <h4 class="text-xs sm:text-sm font-bold text-slate-800">Mid-Level Journey (2.2 – 0.5 km)</h4>
+              </div>
+              <p id="step2-text" class="text-xs text-slate-600 leading-relaxed">
+                The entire mid-level air column remains below 0°C (32°F), so falling snowflakes never melt on their way down.
+              </p>
+            </div>
+
+            <!-- Step 3: Surface Impact -->
+            <div id="step3-card" class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 transition-colors">
+              <div class="flex items-center gap-2 mb-1">
+                <span id="step3-num" class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                <h4 class="text-xs sm:text-sm font-bold text-slate-800">Near-Surface &amp; Ground (0.0 km)</h4>
+              </div>
+              <p id="step3-text" class="text-xs text-slate-600 leading-relaxed">
+                With the surface at -2°C (28°F), intact snowflakes settle gently onto the ground and accumulate as snowpack.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- COMPLETE SELF-CONTAINED APPLICATION LOGIC -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* =========================================================================
+       * 1. CONSTANTS, CONFIGURATION & TEXTBOOK PRESETS
+       * ========================================================================= */
+      const ALT_MIN = 0.0;   // Surface (km)
+      const ALT_MAX = 3.5;   // Top of visual column (km)
+      const TEMP_MIN = -15;  // Left edge of sounding graph (°C)
+      const TEMP_MAX = 15;   // Right edge of sounding graph (°C)
+
+      // SVG coordinate constants matching viewBox="0 0 380 460"
+      const SVG_PLOT = {
+        left: 64,
+        right: 366,
+        top: 14,
+        bottom: 380, // 0.0 km ground level line
+        width: 302,
+        height: 366
+      };
+
+      // The 5 interactive altitude control levels (ordered top to bottom)
+      const LEVELS = [
+        { id: 'cloud',   alt: 3.0, ft: '9,800 ft', label: 'Cloud Base',   minC: -12, maxC: -3, defaultC: -9 },
+        { id: 'upper',   alt: 2.2, ft: '7,200 ft', label: 'Upper-Mid',    minC: -15, maxC: 10, defaultC: -7 },
+        { id: 'warm',    alt: 1.4, ft: '4,600 ft', label: 'Mid-Level',    minC: -15, maxC: 12, defaultC: -5 },
+        { id: 'nearSfc', alt: 0.5, ft: '1,600 ft', label: 'Near-Surface', minC: -15, maxC: 10, defaultC: -3 },
+        { id: 'surface', alt: 0.0, ft: '0 ft',     label: 'Surface',      minC: -15, maxC: 10, defaultC: -2 }
+      ];
+
+      // Textbook meteorological profiles (°C)
+      const PRESETS = {
+        snow: {
+          name: 'Snow',
+          temps: { cloud: -9, upper: -7, warm: -5, nearSfc: -3, surface: -2 }
+        },
+        sleet: {
+          name: 'Sleet',
+          temps: { cloud: -8, upper: -3, warm: 3, nearSfc: -4, surface: -5 }
+        },
+        freezing_rain: {
+          name: 'Freezing Rain',
+          temps: { cloud: -7, upper: 1, warm: 6, nearSfc: 1, surface: -3 }
+        },
+        rain: {
+          name: 'Rain',
+          temps: { cloud: -6, upper: -1, warm: 4, nearSfc: 7, surface: 9 }
+        }
+      };
+
+      // Student Self-Check Challenges
+      const CHALLENGES = [
+        {
+          target: 'freezing_rain',
+          title: 'Challenge 1 of 4: Hazardous Glaze',
+          prompt: 'Create <strong>Freezing Rain</strong>: keep the surface below 0°C (32°F), while making a deep warm layer aloft so snow melts completely into supercooled raindrops.',
+          hint: 'Set Surface (0.0 km) to -2°C or colder, Near-Surface (0.5 km) around 0°C to +2°C, and Mid-Level (1.4 km) to +5°C or warmer.'
+        },
+        {
+          target: 'sleet',
+          title: 'Challenge 2 of 4: Ice Pellets',
+          prompt: 'Turn the profile into <strong>Sleet (Ice Pellets)</strong>: keep a warm layer aloft to melt the snow, but create a deep, cold sub-freezing layer near the ground so drops refreeze before landing.',
+          hint: 'Try Mid-Level (1.4 km) around +2°C to +3°C, and cool both Near-Surface (0.5 km) and Surface (0.0 km) down to -4°C or colder.'
+        },
+        {
+          target: 'snow',
+          title: 'Challenge 3 of 4: Pure Snowfall',
+          prompt: 'Produce <strong>Snow</strong> at the ground: eliminate the elevated warm nose so the entire atmospheric column stays at or below 0°C (32°F).',
+          hint: 'Slide all five altitude levels to 0°C (32°F) or lower.'
+        },
+        {
+          target: 'rain',
+          title: 'Challenge 4 of 4: Cold Rain',
+          prompt: 'Make it <strong>Rain</strong>: snow still forms up in the cold cloud at 3.0 km, but warms above freezing in the lower atmosphere and stays above 0°C (32°F) at the surface.',
+          hint: 'Warm Mid-Level (1.4 km), Near-Surface (0.5 km), and Surface (0.0 km) above +2°C (36°F).'
+        }
+      ];
+
+      /* =========================================================================
+       * 2. APPLICATION STATE
+       * ========================================================================= */
+      const state = {
+        unit: 'C', // 'C' or 'F'
+        temps: { ...PRESETS.snow.temps },
+        activePreset: 'snow',
+        animFrameId: null,
+        presetAnimId: null,
+        draggingLevelId: null,
+        challengeActive: false,
+        challengeIndex: 0,
+        challengeSolved: false,
+        analysis: null, // Computed atmospheric physics summary
+        // Visual accumulation states (0.0 to 1.0) for smooth surface transitions
+        accum: {
+          snow: 0.65,
+          sleet: 0.0,
+          glaze: 0.0,
+          rain: 0.0
+        }
+      };
+
+      /* =========================================================================
+       * 3. UNIT & COORDINATE CONVERSION HELPERS
+       * ========================================================================= */
+      function cToF(c) {
+        return (c * 9) / 5 + 32;
+      }
+
+      function formatTemp(c, includeSecondary = false) {
+        const cRounded = Math.round(c * 10) / 10;
+        const fRounded = Math.round(cToF(c));
+        const cStr = (cRounded > 0 ? '+' : '') + (Number.isInteger(cRounded) ? cRounded : cRounded.toFixed(1)) + '°C';
+        const fStr = fRounded + '°F';
+        if (state.unit === 'C') {
+          return includeSecondary ? `${cStr} (${fStr})` : cStr;
+        } else {
+          return includeSecondary ? `${fStr} (${cStr})` : fStr;
+        }
+      }
+
+      function tempToSvgX(tempC) {
+        const ratio = (tempC - TEMP_MIN) / (TEMP_MAX - TEMP_MIN);
+        return SVG_PLOT.left + Math.max(0, Math.min(1, ratio)) * SVG_PLOT.width;
+      }
+
+      function svgXToTemp(svgX) {
+        const ratio = (svgX - SVG_PLOT.left) / SVG_PLOT.width;
+        return TEMP_MIN + Math.max(0, Math.min(1, ratio)) * (TEMP_MAX - TEMP_MIN);
+      }
+
+      function altToSvgY(altKm) {
+        const ratio = (ALT_MAX - altKm) / (ALT_MAX - ALT_MIN);
+        return SVG_PLOT.top + ratio * SVG_PLOT.height;
+      }
+
+      /**
+       * Evaluates piecewise-linear air temperature T(z) at any altitude z (0.0 to 3.5 km).
+       */
+      function getTempAtAltitude(z) {
+        if (z >= 3.0) {
+          // Gentle lapse rate above cloud base
+          return state.temps.cloud - (z - 3.0) * 4.0;
+        }
+        // LEVELS are ordered top-to-bottom: 3.0, 2.2, 1.4, 0.5, 0.0
+        for (let i = 0; i < LEVELS.length - 1; i++) {
+          const upper = LEVELS[i];
+          const lower = LEVELS[i + 1];
+          if (z <= upper.alt && z >= lower.alt) {
+            const tUpper = state.temps[upper.id];
+            const tLower = state.temps[lower.id];
+            const frac = (upper.alt - z) / (upper.alt - lower.alt);
+            return tUpper + frac * (tLower - tUpper);
+          }
+        }
+        return state.temps.surface;
+      }
+
+      /* =========================================================================
+       * 4. METEOROLOGICAL PHYSICS ENGINE (HYDROMETEOR PHASE & CLASSIFICATION)
+       * ========================================================================= */
+      function analyzeAtmosphericProfile() {
+        const dz = 0.025; // 25-meter vertical integration steps
+        let meltFraction = 0.0; // 0 = pure crystal snow, 1 = 100% liquid drop
+        let maxWarmTemp = -99;
+        let warmThicknessKm = 0;
+        let warmEnergy = 0; // °C * km above 0°C
+        let coldEnergyBelowWarm = 0; // °C * km below 0°C AFTER melting has begun
+        let coldThicknessBelowWarm = 0;
+        let hasEnteredWarmLayer = false;
+
+        // Track phase at key altitudes for particle simulation
+        const layerStates = [];
+
+        for (let z = 3.0; z >= 0.0; z -= dz) {
+          const T = getTempAtAltitude(z);
+
+          if (T > 0) {
+            hasEnteredWarmLayer = true;
+            if (T > maxWarmTemp) maxWarmTemp = T;
+            warmThicknessKm += dz;
+            warmEnergy += T * dz;
+            // Melting rate scales with positive temperature excess
+            meltFraction = Math.min(1.0, meltFraction + T * dz * 0.46);
+          } else if (hasEnteredWarmLayer && meltFraction > 0.12) {
+            // Re-entered sub-freezing air below a warm nose
+            coldThicknessBelowWarm += dz;
+            coldEnergyBelowWarm += Math.abs(T) * dz;
+          }
+
+          // Determine instantaneous particle visual state at altitude z
+          let phase = 'snow';
+          if (meltFraction < 0.14) {
+            phase = 'snow';
+          } else if (meltFraction < 0.80) {
+            if (T > 0) {
+              phase = 'slush';
+            } else {
+              // Partially melted crystal with ice core refreezes rapidly into sleet
+              phase = coldEnergyBelowWarm > 0.25 ? 'sleet' : 'slush';
+            }
+          } else {
+            // Fully melted liquid drop (meltFraction >= 0.80)
+            if (T > 0) {
+              phase = 'rain';
+            } else {
+              // Needs substantial cold depth/energy to nucleate and refreeze pure liquid into sleet
+              phase = coldEnergyBelowWarm >= 1.55 ? 'sleet' : 'supercooled';
+            }
+          }
+
+          layerStates.push({ z, T, meltFraction, phase });
+        }
+
+        const tCloud = state.temps.cloud;
+        const tSfc = state.temps.surface;
+
+        // Determine final surface precipitation type
+        let precipType = 'snow'; // 'snow' | 'sleet' | 'freezing_rain' | 'rain'
+
+        if (tSfc > 0.3 && meltFraction >= 0.32) {
+          precipType = 'rain';
+        } else if (meltFraction < 0.15) {
+          precipType = 'snow';
+        } else if (tSfc <= 0.3) {
+          // Sub-freezing surface with melted/partially-melted hydrometeors aloft
+          if (meltFraction < 0.80) {
+            // Partially melted slush refreezes around ice core -> Sleet
+            precipType = coldEnergyBelowWarm >= 0.22 ? 'sleet' : 'snow';
+          } else {
+            // Fully melted liquid drop: refreezes mid-air if cold layer is deep/cold enough, else supercooled Freezing Rain
+            precipType = coldEnergyBelowWarm >= 1.55 ? 'sleet' : 'freezing_rain';
+          }
+        } else {
+          // Edge case: surface barely above 0°C (0.0 to 0.3°C) with minimal melting
+          precipType = meltFraction >= 0.45 ? 'rain' : 'snow';
+        }
+
+        // Find 0°C crossing altitudes for visual isotherm lines in the sky canvas
+        const zeroCrossings = [];
+        for (let i = 0; i < layerStates.length - 1; i++) {
+          const a = layerStates[i];
+          const b = layerStates[i + 1];
+          if ((a.T <= 0 && b.T > 0) || (a.T > 0 && b.T <= 0)) {
+            const frac = Math.abs(a.T) / (Math.abs(a.T) + Math.abs(b.T) + 1e-6);
+            zeroCrossings.push(a.z - frac * dz);
+          }
+        }
+
+        return {
+          precipType,
+          meltFraction,
+          maxWarmTemp,
+          warmThicknessKm,
+          warmEnergy,
+          coldEnergyBelowWarm,
+          coldThicknessBelowWarm,
+          tCloud,
+          tSfc,
+          layerStates,
+          zeroCrossings
+        };
+      }
+
+      /* =========================================================================
+       * 5. DOM INITIALIZATION: SOUNDING SVG GRID & ALIGNED SLIDERS
+       * ========================================================================= */
+      const svgEl = document.getElementById('sounding-svg');
+      const svgGridY = document.getElementById('svg-grid-y');
+      const svgGridX = document.getElementById('svg-grid-x');
+      const svgSegments = document.getElementById('svg-profile-segments');
+      const svgNodes = document.getElementById('svg-control-nodes');
+      const sliderContainer = document.getElementById('slider-track-container');
+
+      function buildSoundingGrid() {
+        // Horizontal altitude gridlines (every 0.5 km from 0.0 to 3.5 km)
+        let yHtml = '';
+        for (let alt = 0.0; alt <= 3.501; alt += 0.5) {
+          const y = altToSvgY(alt);
+          const isControl = LEVELS.some(l => Math.abs(l.alt - alt) < 0.01);
+          const stroke = alt === 0 ? '#64748b' : (isControl ? '#94a3b8' : '#cbd5e1');
+          const dash = alt === 0 ? '' : 'stroke-dasharray="3,3"';
+          yHtml += `<line x1="${SVG_PLOT.left}" y1="${y}" x2="${SVG_PLOT.right}" y2="${y}" stroke="${stroke}" stroke-width="${alt === 0 ? 1.5 : 1}" ${dash} opacity="0.65" />`;
+          yHtml += `<text x="${SVG_PLOT.left - 8}" y="${y + 3.5}" text-anchor="end" fill="#334155" font-size="10.5" font-weight="${isControl ? '700' : '500'}">${alt.toFixed(1)} km</text>`;
+        }
+        // Y-axis rotated label
+        yHtml += `<text x="14" y="${(SVG_PLOT.top + SVG_PLOT.bottom) / 2}" text-anchor="middle" fill="#475569" font-size="11" font-weight="700" transform="rotate(-90, 14, ${(SVG_PLOT.top + SVG_PLOT.bottom) / 2})">Altitude (km)</text>`;
+        svgGridY.innerHTML = yHtml;
+      }
+
+      function renderSoundingXAxis() {
+        const ticksC = [-15, -10, -5, 0, 5, 10, 15];
+        let xHtml = '';
+        ticksC.forEach(tc => {
+          const x = tempToSvgX(tc);
+          if (tc !== 0) {
+            xHtml += `<line x1="${x}" y1="${SVG_PLOT.top}" x2="${x}" y2="${SVG_PLOT.bottom}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,3" opacity="0.65" />`;
+          }
+          const label = state.unit === 'C' ? `${tc > 0 ? '+' + tc : tc}°` : `${Math.round(cToF(tc))}°`;
+          const weight = tc === 0 ? '800' : '600';
+          const color = tc < 0 ? '#0369a1' : (tc > 0 ? '#c2410c' : '#0f172a');
+          xHtml += `<text x="${x}" y="${SVG_PLOT.bottom + 16}" text-anchor="middle" fill="${color}" font-size="10.5" font-weight="${weight}">${label}</text>`;
+        });
+        svgGridX.innerHTML = xHtml;
+
+        document.getElementById('x-axis-title').textContent =
+          state.unit === 'C' ? 'Air Temperature (°C)' : 'Air Temperature (°F)';
+        document.getElementById('freezing-line-label').textContent =
+          state.unit === 'C' ? 'Freezing (0°C / 32°F)' : 'Freezing (32°F / 0°C)';
+      }
+
+      function buildAlignedSliders() {
+        // Position each slider vertically to match its exact altitude on the SVG chart
+        // Inside the SVG (viewBox height 460), plot top is 14 (3.04%) and bottom is 380 (82.61%).
+        let html = '';
+        LEVELS.forEach(lvl => {
+          const svgY = altToSvgY(lvl.alt);
+          const topPct = (svgY / 460) * 100;
+          html += `
+            <div class="sm:absolute left-0 right-0 sm:-translate-y-1/2 bg-slate-50/95 sm:bg-white/95 border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-2xs mb-2 sm:mb-0"
+                 style="top: ${topPct.toFixed(2)}%;"
+                 data-slider-card="${lvl.id}">
+              <div class="flex items-center justify-between text-[11px] mb-1">
+                <span class="font-bold text-slate-700">${lvl.alt.toFixed(1)} km <span class="font-normal text-slate-400">(${lvl.label})</span></span>
+                <span id="val-${lvl.id}" class="font-extrabold tabular-nums text-sky-700">-9°C</span>
+              </div>
+              <input type="range"
+                     id="slider-${lvl.id}"
+                     class="temp-slider"
+                     min="${lvl.minC}"
+                     max="${lvl.maxC}"
+                     step="0.5"
+                     value="${state.temps[lvl.id]}"
+                     aria-label="${lvl.label} Temperature at ${lvl.alt} km" />
+            </div>
+          `;
+        });
+        sliderContainer.innerHTML = html;
+
+        // Attach slider input listeners
+        LEVELS.forEach(lvl => {
+          const slider = document.getElementById(`slider-${lvl.id}`);
+          slider.addEventListener('input', (e) => {
+            cancelPresetAnimation();
+            state.temps[lvl.id] = parseFloat(e.target.value);
+            state.activePreset = detectMatchingPreset();
+            updateAll();
+          });
+        });
+      }
+
+      /* =========================================================================
+       * 6. RENDERING THE SOUNDING PROFILE LINE & DRAGGABLE NODES
+       * ========================================================================= */
+      function renderSoundingCurve() {
+        // Build segments from top (3.5 km extrapolated) down through all 5 control points
+        const points = [
+          { alt: 3.5, temp: getTempAtAltitude(3.5), isControl: false },
+          ...LEVELS.map(l => ({ alt: l.alt, temp: state.temps[l.id], id: l.id, isControl: true }))
+        ];
+
+        let segHtml = '';
+        for (let i = 0; i < points.length - 1; i++) {
+          const p1 = points[i];
+          const p2 = points[i + 1];
+          const x1 = tempToSvgX(p1.temp);
+          const y1 = altToSvgY(p1.alt);
+          const x2 = tempToSvgX(p2.temp);
+          const y2 = altToSvgY(p2.alt);
+
+          // Check if segment crosses 0°C; if so, split cleanly at 0°C for crisp color coding!
+          if ((p1.temp < 0 && p2.temp > 0) || (p1.temp > 0 && p2.temp < 0)) {
+            const frac = Math.abs(p1.temp) / (Math.abs(p1.temp) + Math.abs(p2.temp));
+            const xZero = tempToSvgX(0);
+            const yZero = y1 + frac * (y2 - y1);
+            const color1 = p1.temp < 0 ? '#0284c7' : '#ea580c';
+            const color2 = p2.temp < 0 ? '#0284c7' : '#ea580c';
+
+            segHtml += `<line x1="${x1}" y1="${y1}" x2="${xZero}" y2="${yZero}" stroke="${color1}" stroke-width="4" stroke-linecap="round" />`;
+            segHtml += `<line x1="${xZero}" y1="${yZero}" x2="${x2}" y2="${y2}" stroke="${color2}" stroke-width="4" stroke-linecap="round" />`;
+          } else {
+            const color = (p1.temp <= 0 && p2.temp <= 0) ? '#0284c7' : '#ea580c';
+            segHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="4" stroke-linecap="round" />`;
+          }
+        }
+        svgSegments.innerHTML = segHtml;
+
+        // Render interactive draggable nodes for each of the 5 control levels
+        let nodesHtml = '';
+        LEVELS.forEach(lvl => {
+          const t = state.temps[lvl.id];
+          const cx = tempToSvgX(t);
+          const cy = altToSvgY(lvl.alt);
+          const fill = t <= 0 ? '#0284c7' : '#ea580c';
+          const isDragging = state.draggingLevelId === lvl.id;
+
+          nodesHtml += `
+            <g class="node-group" data-level-id="${lvl.id}">
+              <!-- Larger invisible hit target for easy touch/mouse grabbing -->
+              <circle cx="${cx}" cy="${cy}" r="18" fill="transparent" class="cursor-grab" data-drag-id="${lvl.id}" />
+              <circle cx="${cx}" cy="${cy}" r="${isDragging ? 9.5 : 7}"
+                      fill="${fill}" stroke="#ffffff" stroke-width="2.5"
+                      class="sounding-node ${isDragging ? 'dragging' : ''}"
+                      data-drag-id="${lvl.id}" />
+            </g>
+          `;
+        });
+        svgNodes.innerHTML = nodesHtml;
+      }
+
+      // Pointer / Mouse / Touch Dragging on SVG Nodes
+      function setupSvgDragging() {
+        function getClientX(evt) {
+          if (evt.touches && evt.touches.length > 0) return evt.touches[0].clientX;
+          return evt.clientX;
+        }
+
+        function onPointerDown(evt) {
+          const dragId = evt.target && evt.target.getAttribute('data-drag-id');
+          if (!dragId) return;
+          evt.preventDefault();
+          cancelPresetAnimation();
+          state.draggingLevelId = dragId;
+          renderSoundingCurve();
+        }
+
+        function onPointerMove(evt) {
+          if (!state.draggingLevelId) return;
+          evt.preventDefault();
+          const rect = svgEl.getBoundingClientRect();
+          const clientX = getClientX(evt);
+          const svgX = ((clientX - rect.left) / rect.width) * 380;
+          const lvl = LEVELS.find(l => l.id === state.draggingLevelId);
+          if (!lvl) return;
+
+          let newTemp = svgXToTemp(svgX);
+          newTemp = Math.max(lvl.minC, Math.min(lvl.maxC, Math.round(newTemp * 2) / 2));
+          state.temps[lvl.id] = newTemp;
+          state.activePreset = detectMatchingPreset();
+          updateAll();
+        }
+
+        function onPointerUp() {
+          if (!state.draggingLevelId) return;
+          state.draggingLevelId = null;
+          renderSoundingCurve();
+        }
+
+        svgEl.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        svgEl.addEventListener('touchstart', onPointerDown, { passive: false });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp);
+      }
+
+      /* =========================================================================
+       * 7. SYNCHRONIZING SLIDERS, PRESET PILLS, PEDAGOGICAL TEXT & CHALLENGES
+       * ========================================================================= */
+      function detectMatchingPreset() {
+        for (const [key, preset] of Object.entries(PRESETS)) {
+          const match = LEVELS.every(l => Math.abs(state.temps[l.id] - preset.temps[l.id]) < 0.26);
+          if (match) return key;
+        }
+        return 'custom';
+      }
+
+      function updateSlidersAndHeader() {
+        LEVELS.forEach(lvl => {
+          const val = state.temps[lvl.id];
+          const slider = document.getElementById(`slider-${lvl.id}`);
+          const readout = document.getElementById(`val-${lvl.id}`);
+          if (slider) {
+            slider.value = val;
+            slider.style.setProperty('--thumb-color', val <= 0 ? '#0284c7' : '#ea580c');
+          }
+          if (readout) {
+            readout.textContent = formatTemp(val, false);
+            readout.className = `font-extrabold tabular-nums ${val <= 0 ? 'text-sky-700' : 'text-orange-600'}`;
+          }
+        });
+
+        // Update Preset Button active states
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          const p = btn.getAttribute('data-preset');
+          if (p === state.activePreset) {
+            btn.className = 'preset-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-sky-500 text-white shadow-sm';
+          } else {
+            btn.className = 'preset-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-300 hover:text-white hover:bg-slate-700/70';
+          }
+        });
+      }
+
+      function updatePedagogyAndChallenge() {
+        const a = state.analysis;
+        if (!a) return;
+
+        const livePill = document.getElementById('live-precip-pill');
+        const outcomeBadge = document.getElementById('outcome-badge');
+        const outcomeTagline = document.getElementById('outcome-tagline');
+
+        const step1Text = document.getElementById('step1-text');
+        const step2Card = document.getElementById('step2-card');
+        const step2Num = document.getElementById('step2-num');
+        const step2Text = document.getElementById('step2-text');
+        const step3Card = document.getElementById('step3-card');
+        const step3Num = document.getElementById('step3-num');
+        const step3Text = document.getElementById('step3-text');
+
+        // Configure top badges & taglines based on surface precipitation type
+        if (a.precipType === 'snow') {
+          livePill.textContent = 'Snow';
+          livePill.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase bg-sky-100 text-sky-800 border border-sky-200';
+          outcomeBadge.innerHTML = '❄️ SNOW';
+          outcomeBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-extrabold bg-sky-100 text-sky-900 border border-sky-300';
+          outcomeTagline.textContent = 'Sub-freezing air from cloud to ground preserves ice crystals.';
+        } else if (a.precipType === 'sleet') {
+          livePill.textContent = 'Sleet';
+          livePill.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase bg-indigo-100 text-indigo-800 border border-indigo-200';
+          outcomeBadge.innerHTML = '🧊 SLEET (ICE PELLETS)';
+          outcomeBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-300';
+          outcomeTagline.textContent = 'Snow melts aloft, then refreezes into ice pellets in a deep cold layer near the ground.';
+        } else if (a.precipType === 'freezing_rain') {
+          livePill.textContent = 'Freezing Rain';
+          livePill.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase bg-amber-100 text-amber-900 border border-amber-300';
+          outcomeBadge.innerHTML = '🌧️❄️ FREEZING RAIN';
+          outcomeBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-extrabold bg-amber-100 text-amber-900 border border-amber-300';
+          outcomeTagline.textContent = 'Snow melts completely aloft into supercooled raindrops that freeze on contact with cold surfaces.';
+        } else {
+          livePill.textContent = 'Rain';
+          livePill.className = 'px-2.5 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase bg-emerald-100 text-emerald-800 border border-emerald-200';
+          outcomeBadge.innerHTML = '💧 RAIN';
+          outcomeBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300';
+          outcomeTagline.textContent = 'Snow melts in warm lower-level air and falls onto an above-freezing surface.';
+        }
+
+        // Step 1: Cloud Formation (3.0 km)
+        step1Text.textContent = `Inside the sub-freezing cloud at ${formatTemp(a.tCloud, true)}, water vapor freezes onto microscopic particles to form six-sided snow crystals.`;
+
+        // Step 2: Mid-Level Journey (2.2 - 0.5 km)
+        if (a.maxWarmTemp <= 0) {
+          step2Card.className = 'p-3 rounded-xl bg-sky-50/70 border border-sky-200/80 transition-colors';
+          step2Num.className = 'w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step2Text.textContent = `The entire mid-level air column remains at or below ${formatTemp(0, true)}, so falling snowflakes never melt on their way down.`;
+        } else if (a.precipType === 'sleet') {
+          step2Card.className = 'p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 transition-colors';
+          step2Num.className = 'w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step2Text.textContent = `A warm nose reaching ${formatTemp(a.maxWarmTemp, true)} melts snow into liquid/slush, which then enters a deep sub-freezing layer below and refreezes mid-air into ice pellets.`;
+        } else if (a.precipType === 'freezing_rain') {
+          step2Card.className = 'p-3 rounded-xl bg-orange-50/80 border border-orange-200 transition-colors';
+          step2Num.className = 'w-5 h-5 rounded-full bg-orange-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step2Text.textContent = `A deep warm layer peaking at ${formatTemp(a.maxWarmTemp, true)} melts snow completely into raindrops. The cold layer below is too shallow to refreeze them mid-air, creating supercooled drops.`;
+        } else {
+          step2Card.className = 'p-3 rounded-xl bg-orange-50/80 border border-orange-200 transition-colors';
+          step2Num.className = 'w-5 h-5 rounded-full bg-orange-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step2Text.textContent = `Air warms above freezing (reaching ${formatTemp(a.maxWarmTemp, true)}), melting the falling snowflakes completely into liquid raindrops.`;
+        }
+
+        // Step 3: Near-Surface & Ground (0.0 km)
+        if (a.precipType === 'snow') {
+          step3Card.className = 'p-3 rounded-xl bg-sky-50/70 border border-sky-200/80 transition-colors';
+          step3Num.className = 'w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step3Text.textContent = `With the surface at ${formatTemp(a.tSfc, true)}, intact snowflakes settle gently onto the ground and accumulate as snowpack.`;
+        } else if (a.precipType === 'sleet') {
+          step3Card.className = 'p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/80 transition-colors';
+          step3Num.className = 'w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step3Text.textContent = `At ${formatTemp(a.tSfc, true)}, frozen ice pellets hit the ground and bounce off pavement, roofs, and windshields before piling up.`;
+        } else if (a.precipType === 'freezing_rain') {
+          step3Card.className = 'p-3 rounded-xl bg-amber-50/90 border border-amber-300 transition-colors';
+          step3Num.className = 'w-5 h-5 rounded-full bg-amber-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step3Text.textContent = `Supercooled liquid drops strike the sub-freezing surface (${formatTemp(a.tSfc, true)}) and freeze instantly, coating roads, trees, and power lines in a slick glaze of ice.`;
+        } else {
+          step3Card.className = 'p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 transition-colors';
+          step3Num.className = 'w-5 h-5 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0';
+          step3Text.textContent = `Because the ground is above freezing at ${formatTemp(a.tSfc, true)}, raindrops remain liquid upon impact and collect as wet pavement and puddles.`;
+        }
+
+        // Update Quick Challenge Mode status if active
+        if (state.challengeActive) {
+          const currentChallenge = CHALLENGES[state.challengeIndex];
+          const statusBadge = document.getElementById('challenge-status-badge');
+          if (a.precipType === currentChallenge.target) {
+            state.challengeSolved = true;
+            statusBadge.classList.remove('hidden');
+          } else {
+            state.challengeSolved = false;
+            statusBadge.classList.add('hidden');
+          }
+        }
+      }
+
+      function updateAll() {
+        state.analysis = analyzeAtmosphericProfile();
+        renderSoundingCurve();
+        updateSlidersAndHeader();
+        updatePedagogyAndChallenge();
+      }
+
+      /* =========================================================================
+       * 8. PRESET SMOOTH TRANSITIONS, UNIT SWITCHING & CHALLENGE MODE CONTROLS
+       * ========================================================================= */
+      function cancelPresetAnimation() {
+        if (state.presetAnimId) {
+          cancelAnimationFrame(state.presetAnimId);
+          state.presetAnimId = null;
+        }
+      }
+
+      function animatePresetTo(presetKey) {
+        const preset = PRESETS[presetKey];
+        if (!preset) return;
+        cancelPresetAnimation();
+
+        const startTemps = { ...state.temps };
+        const targetTemps = { ...preset.temps };
+        const duration = 360;
+        const startTime = performance.now();
+        state.activePreset = presetKey;
+
+        function step(now) {
+          const elapsed = now - startTime;
+          const t = Math.min(1, elapsed / duration);
+          // Smooth cubic ease-out
+          const ease = 1 - Math.pow(1 - t, 3);
+
+          LEVELS.forEach(lvl => {
+            const s = startTemps[lvl.id];
+            const e = targetTemps[lvl.id];
+            const interp = s + (e - s) * ease;
+            state.temps[lvl.id] = t === 1 ? e : Math.round(interp * 10) / 10;
+          });
+
+          updateAll();
+
+          if (t < 1) {
+            state.presetAnimId = requestAnimationFrame(step);
+          } else {
+            state.presetAnimId = null;
+          }
+        }
+
+        state.presetAnimId = requestAnimationFrame(step);
+      }
+
+      function renderChallengeContent() {
+        const ch = CHALLENGES[state.challengeIndex];
+        document.getElementById('challenge-step-badge').textContent = ch.title;
+        document.getElementById('challenge-prompt').innerHTML = ch.prompt;
+        document.getElementById('challenge-hint').textContent = '';
+        updatePedagogyAndChallenge();
+      }
+
+      function setupControls() {
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const presetKey = btn.getAttribute('data-preset');
+            animatePresetTo(presetKey);
+          });
+        });
+
+        // Temperature unit toggle buttons
+        const unitCBtn = document.getElementById('unit-c-btn');
+        const unitFBtn = document.getElementById('unit-f-btn');
+
+        unitCBtn.addEventListener('click', () => {
+          if (state.unit === 'C') return;
+          state.unit = 'C';
+          unitCBtn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-sm';
+          unitFBtn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white';
+          renderSoundingXAxis();
+          updateAll();
+        });
+
+        unitFBtn.addEventListener('click', () => {
+          if (state.unit === 'F') return;
+          state.unit = 'F';
+          unitFBtn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-sm';
+          unitCBtn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-300 hover:text-white';
+          renderSoundingXAxis();
+          updateAll();
+        });
+
+        // Quick Challenge Mode toggle & navigation
+        const challengeToggleBtn = document.getElementById('challenge-toggle-btn');
+        const challengeToggleLabel = document.getElementById('challenge-toggle-label');
+        const challengePanel = document.getElementById('challenge-panel');
+        const challengeHintBtn = document.getElementById('challenge-hint-btn');
+        const challengeNextBtn = document.getElementById('challenge-next-btn');
+
+        challengeToggleBtn.addEventListener('click', () => {
+          state.challengeActive = !state.challengeActive;
+          if (state.challengeActive) {
+            challengePanel.classList.remove('hidden');
+            challengeToggleLabel.textContent = 'Close Challenge';
+            renderChallengeContent();
+          } else {
+            challengePanel.classList.add('hidden');
+            challengeToggleLabel.textContent = 'Quick Challenge Mode';
+          }
+        });
+
+        challengeHintBtn.addEventListener('click', () => {
+          const ch = CHALLENGES[state.challengeIndex];
+          document.getElementById('challenge-hint').textContent = `Hint: ${ch.hint}`;
+        });
+
+        challengeNextBtn.addEventListener('click', () => {
+          state.challengeIndex = (state.challengeIndex + 1) % CHALLENGES.length;
+          renderChallengeContent();
+        });
+      }
+
+      /* =========================================================================
+       * 9. LIVE ATMOSPHERIC COLUMN & SURFACE ANIMATION ENGINE (HTML5 CANVAS)
+       * ========================================================================= */
+      const canvas = document.getElementById('atmosphere-canvas');
+      const ctx = canvas.getContext('2d');
+      let canvasWidth = 0;
+      let canvasHeight = 0;
+      let dpr = 1;
+
+      const particles = [];
+      const splashes = [];
+      const PARTICLE_COUNT = 105;
+
+      function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvasWidth = rect.width;
+        canvasHeight = rect.height;
+        canvas.width = Math.round(canvasWidth * dpr);
+        canvas.height = Math.round(canvasHeight * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function createParticle(randomInitialAlt = true) {
+        return {
+          xRatio: 0.08 + Math.random() * 0.84,
+          alt: randomInitialAlt ? Math.random() * 2.95 : 2.85 + Math.random() * 0.25,
+          melt: 0.0,
+          coldExposure: 0.0,
+          hasMelted: false,
+          size: 0.85 + Math.random() * 0.45,
+          phaseOffset: Math.random() * Math.PI * 2,
+          spin: (Math.random() - 0.5) * 2.2,
+          angle: Math.random() * Math.PI * 2,
+          bouncing: false,
+          bounceVy: 0,
+          bounceVx: (Math.random() - 0.5) * 1.4,
+          bounceLife: 0
+        };
+      }
+
+      function initParticles() {
+        particles.length = 0;
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push(createParticle(true));
+        }
+      }
+
+      function altToCanvasY(altKm, groundY) {
+        // Top of canvas = 3.5 km, groundY = 0.0 km
+        const frac = (ALT_MAX - altKm) / (ALT_MAX - ALT_MIN);
+        return frac * groundY;
+      }
+
+      function drawRoundedBox(x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function drawSnowflake(x, y, radius, angle) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.45;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) {
+          ctx.rotate(Math.PI / 3);
+          ctx.beginPath();
+          ctx.moveTo(-radius, 0);
+          ctx.lineTo(radius, 0);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawRaindrop(x, y, radius, isSupercooled) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.beginPath();
+        ctx.moveTo(0, -radius * 1.6);
+        ctx.bezierCurveTo(radius * 1.1, -radius * 0.2, radius * 1.1, radius * 1.2, 0, radius * 1.2);
+        ctx.bezierCurveTo(-radius * 1.1, radius * 1.2, -radius * 1.1, -radius * 0.2, 0, -radius * 1.6);
+        ctx.closePath();
+
+        if (isSupercooled) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
+          ctx.strokeStyle = '#e0f2fe';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = '#0284c7';
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawIcePellet(x, y, radius) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fill();
+        ctx.strokeStyle = '#4f46e5';
+        ctx.lineWidth = 1.25;
+        ctx.stroke();
+
+        // Specular ice glint
+        ctx.beginPath();
+        ctx.arc(-radius * 0.3, -radius * 0.3, radius * 0.32, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function renderAtmosphereFrame(dt, nowSec) {
+        // Keep canvas dimensions synchronized with container
+        if (canvas && canvas.parentElement) {
+          const rect = canvas.parentElement.getBoundingClientRect();
+          if (Math.abs(rect.width - canvasWidth) > 1 || Math.abs(rect.height - canvasHeight) > 1) {
+            resizeCanvas();
+          }
+        }
+        if (canvasWidth <= 0 || canvasHeight <= 0) return;
+
+        const w = canvasWidth;
+        const h = canvasHeight;
+        const groundY = h * 0.83; // 0.0 km surface level
+        const analysis = state.analysis || analyzeAtmosphericProfile();
+
+        // 1. Sky Background Gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+        skyGrad.addColorStop(0, '#475569');
+        skyGrad.addColorStop(0.28, '#94a3b8');
+        skyGrad.addColorStop(1, '#e2e8f0');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, groundY);
+
+        // 2. Highlighted Warm Layer Band (where T(z) > 0°C)
+        const steps = 70;
+        const stepH = groundY / steps;
+        for (let i = 0; i < steps; i++) {
+          const yTop = i * stepH;
+          const altMid = ALT_MAX - ((yTop + stepH * 0.5) / groundY) * (ALT_MAX - ALT_MIN);
+          const T = getTempAtAltitude(altMid);
+          if (T > 0) {
+            const alpha = Math.min(0.32, 0.08 + (T / 12) * 0.24);
+            ctx.fillStyle = `rgba(251, 146, 60, ${alpha.toFixed(3)})`;
+            ctx.fillRect(0, yTop, w, stepH + 0.6);
+          }
+        }
+
+        // 3. Draw 0°C / 32°F Freezing Isotherm Dashed Lines in the Sky
+        analysis.zeroCrossings.forEach((zCross, idx) => {
+          if (zCross > 0.04 && zCross < 3.0) {
+            const yLine = altToCanvasY(zCross, groundY);
+            ctx.save();
+            ctx.setLineDash([5, 4]);
+            ctx.strokeStyle = 'rgba(15, 23, 42, 0.65)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, yLine);
+            ctx.lineTo(w, yLine);
+            ctx.stroke();
+            ctx.restore();
+
+            if (idx === 0) {
+              const label = state.unit === 'C' ? '0°C Freezing Level' : '32°F Freezing Level';
+              ctx.font = '700 10px Inter, sans-serif';
+              const textW = ctx.measureText(label).width;
+              const pillW = textW + 12;
+              const pillX = w - pillW - 8;
+              const pillY = Math.max(46, Math.min(groundY - 22, yLine - 9));
+              ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+              drawRoundedBox(pillX, pillY, pillW, 18, 4);
+              ctx.fill();
+              ctx.fillStyle = '#ffffff';
+              ctx.textAlign = 'center';
+              ctx.fillText(label, pillX + pillW / 2, pillY + 12.5);
+            }
+          }
+        });
+
+        // 4. Subtle Altitude Reference Markers along Left Edge
+        ctx.save();
+        ctx.font = '600 9.5px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        [3.0, 2.0, 1.0].forEach(alt => {
+          const y = altToCanvasY(alt, groundY);
+          ctx.strokeStyle = 'rgba(15, 23, 42, 0.2)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(8, y);
+          ctx.stroke();
+
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+          ctx.fillText(`${alt.toFixed(1)} km`, 11, y + 3);
+        });
+        ctx.restore();
+
+        // 5. Update & Render Falling Hydrometeors
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+
+          if (p.bouncing) {
+            p.bounceLife -= dt;
+            p.xRatio += (p.bounceVx * dt) / w;
+            p.alt += p.bounceVy * dt;
+            p.bounceVy -= 2.8 * dt;
+            if (p.bounceLife <= 0 || p.alt < 0) {
+              Object.assign(p, createParticle(false));
+            }
+          } else {
+            const T = getTempAtAltitude(p.alt);
+            if (T > 0) {
+              p.hasMelted = true;
+              p.melt = Math.min(1.0, p.melt + T * dt * 0.55);
+            } else if (p.hasMelted && p.melt > 0.14) {
+              p.coldExposure += Math.abs(T) * dt * 1.15;
+            }
+
+            // Determine instantaneous visual phase
+            let phase = 'snow';
+            if (p.melt < 0.15) {
+              phase = 'snow';
+            } else if (p.melt < 0.80) {
+              phase = (T <= 0 && p.coldExposure > 0.22) ? 'sleet' : 'slush';
+            } else {
+              if (T > 0) {
+                phase = 'rain';
+              } else {
+                phase = p.coldExposure >= 1.35 ? 'sleet' : 'supercooled';
+              }
+            }
+
+            // Fall velocity varies realistically by hydrometeor phase
+            const fallSpeedKmPerSec =
+              phase === 'snow' ? 0.52 :
+              phase === 'slush' ? 0.78 :
+              phase === 'sleet' ? 1.25 : 1.35;
+
+            p.alt -= fallSpeedKmPerSec * dt;
+            p.angle += p.spin * dt;
+
+            // Horizontal drift
+            const flutter = phase === 'snow' ? Math.sin(nowSec * 2.4 + p.phaseOffset) * 14 * dt : 0;
+            p.xRatio += flutter / w;
+
+            // Ground impact at 0.0 km
+            if (p.alt <= 0.0) {
+              const impactX = p.xRatio * w;
+              if (phase === 'sleet' || analysis.precipType === 'sleet') {
+                p.alt = 0.01;
+                p.bouncing = true;
+                p.bounceVy = 0.24 + Math.random() * 0.16;
+                p.bounceLife = 0.28;
+              } else {
+                if (phase === 'rain' || phase === 'supercooled') {
+                  splashes.push({
+                    x: impactX,
+                    y: groundY,
+                    life: 0.22,
+                    isGlaze: phase === 'supercooled'
+                  });
+                }
+                Object.assign(p, createParticle(false));
+              }
+            }
+          }
+
+          // Render the particle at its current position
+          const px = p.xRatio * w;
+          const py = altToCanvasY(Math.max(0, p.alt), groundY);
+
+          if (p.bouncing) {
+            drawIcePellet(px, py, 2.7 * p.size);
+          } else {
+            const T = getTempAtAltitude(p.alt);
+            if (p.melt < 0.15) {
+              drawSnowflake(px, py, 4.2 * p.size, p.angle);
+            } else if (p.melt < 0.80 && !(T <= 0 && p.coldExposure > 0.22)) {
+              // Partially melted slushy crystal
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(px, py, 3.2 * p.size, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(224, 242, 254, 0.9)';
+              ctx.fill();
+              ctx.strokeStyle = '#38bdf8';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              ctx.restore();
+            } else if (T <= 0 && ((p.melt < 0.80 && p.coldExposure > 0.22) || p.coldExposure >= 1.35)) {
+              drawIcePellet(px, py, 2.8 * p.size);
+            } else {
+              const isSupercooled = T <= 0;
+              drawRaindrop(px, py, 2.7 * p.size, isSupercooled);
+            }
+          }
+        }
+
+        // Render ground impact splashes / glaze glints
+        for (let i = splashes.length - 1; i >= 0; i--) {
+          const sp = splashes[i];
+          sp.life -= dt;
+          if (sp.life <= 0) {
+            splashes.splice(i, 1);
+            continue;
+          }
+          const progress = 1 - sp.life / 0.22;
+          const r = 2 + progress * 6;
+          ctx.save();
+          ctx.strokeStyle = sp.isGlaze ? `rgba(186, 230, 253, ${1 - progress})` : `rgba(2, 132, 199, ${(1 - progress) * 0.75})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y - 1, r, Math.PI, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 6. Storm Cloud Deck at Top (2.9 km - 3.5 km)
+        const cloudBottomY = altToCanvasY(2.92, groundY);
+        ctx.save();
+        const cloudGrad = ctx.createLinearGradient(0, 0, 0, cloudBottomY + 12);
+        cloudGrad.addColorStop(0, '#1e293b');
+        cloudGrad.addColorStop(0.7, '#334155');
+        cloudGrad.addColorStop(1, '#475569');
+        ctx.fillStyle = cloudGrad;
+        ctx.fillRect(0, 0, w, cloudBottomY);
+
+        // Fluffy cloud base puffs
+        const puffCount = 7;
+        const puffSpacing = w / (puffCount - 1);
+        for (let i = 0; i < puffCount; i++) {
+          const cx = i * puffSpacing;
+          const cy = cloudBottomY + Math.sin(i * 1.7) * 4;
+          const r = puffSpacing * 0.62;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = '#475569';
+          ctx.fill();
+        }
+
+        // Cloud Temperature Badge
+        const cloudBadge = `Cloud Base: ${formatTemp(analysis.tCloud, false)}`;
+        ctx.font = '700 10.5px Inter, sans-serif';
+        const cbW = ctx.measureText(cloudBadge).width + 14;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+        drawRoundedBox((w - cbW) / 2, 10, cbW, 20, 6);
+        ctx.fill();
+        ctx.fillStyle = '#e0f2fe';
+        ctx.textAlign = 'center';
+        ctx.fillText(cloudBadge, w / 2, 23.5);
+        ctx.restore();
+
+        // 7. Ground Cross-Section & Dynamic Surface Accumulation (0.0 km)
+        const targetSnow = analysis.precipType === 'snow' ? 1 : 0;
+        const targetSleet = analysis.precipType === 'sleet' ? 1 : 0;
+        const targetGlaze = analysis.precipType === 'freezing_rain' ? 1 : 0;
+        const targetRain = analysis.precipType === 'rain' ? 1 : 0;
+
+        const lerpRate = Math.min(1, dt * 3.2);
+        state.accum.snow += (targetSnow - state.accum.snow) * lerpRate;
+        state.accum.sleet += (targetSleet - state.accum.sleet) * lerpRate;
+        state.accum.glaze += (targetGlaze - state.accum.glaze) * lerpRate;
+        state.accum.rain += (targetRain - state.accum.rain) * lerpRate;
+
+        // Sub-surface soil & asphalt base
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, groundY, w, h - groundY);
+
+        // Asphalt road strip
+        ctx.fillStyle = state.accum.rain > 0.35 ? '#0f172a' : '#1e293b';
+        ctx.fillRect(0, groundY, w, 12);
+
+        // Road dashed yellow line
+        ctx.fillStyle = '#facc15';
+        for (let rx = 14; rx < w; rx += 36) {
+          ctx.fillRect(rx, groundY + 5, 18, 2);
+        }
+
+        // Simple Pine Tree on Right & Road Sign on Left to show surface effects clearly
+        const treeX = w * 0.80;
+        // Tree trunk
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(treeX - 4, groundY - 14, 8, 14);
+        // Pine tiers
+        const tiers = [
+          { yBase: groundY - 12, halfW: 22, height: 22 },
+          { yBase: groundY - 26, halfW: 17, height: 20 },
+          { yBase: groundY - 38, halfW: 12, height: 18 }
+        ];
+        tiers.forEach(t => {
+          ctx.beginPath();
+          ctx.moveTo(treeX, t.yBase - t.height);
+          ctx.lineTo(treeX - t.halfW, t.yBase);
+          ctx.lineTo(treeX + t.halfW, t.yBase);
+          ctx.closePath();
+          ctx.fillStyle = '#15803d';
+          ctx.fill();
+
+          // Snow cap on tree branches
+          if (state.accum.snow > 0.05) {
+            ctx.beginPath();
+            ctx.moveTo(treeX, t.yBase - t.height);
+            ctx.lineTo(treeX - t.halfW * 0.72, t.yBase - t.height * 0.32);
+            ctx.lineTo(treeX + t.halfW * 0.72, t.yBase - t.height * 0.32);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(255, 255, 255, ${state.accum.snow * 0.95})`;
+            ctx.fill();
+          }
+
+          // Ice glaze sheen on tree branches during freezing rain
+          if (state.accum.glaze > 0.05) {
+            ctx.strokeStyle = `rgba(186, 230, 253, ${state.accum.glaze * 0.95})`;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(treeX, t.yBase - t.height);
+            ctx.lineTo(treeX - t.halfW, t.yBase);
+            ctx.moveTo(treeX, t.yBase - t.height);
+            ctx.lineTo(treeX + t.halfW, t.yBase);
+            ctx.stroke();
+          }
+        });
+
+        // Surface Accumulation Layer across ground
+        if (state.accum.snow > 0.03) {
+          const snowH = 7 * state.accum.snow;
+          ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, state.accum.snow * 1.1)})`;
+          ctx.fillRect(0, groundY - snowH, w, snowH + 1);
+        }
+
+        if (state.accum.sleet > 0.03) {
+          const sleetH = 5 * state.accum.sleet;
+          ctx.fillStyle = `rgba(224, 242, 254, ${state.accum.sleet * 0.92})`;
+          ctx.fillRect(0, groundY - sleetH, w, sleetH + 1);
+          // Granular pellet texture
+          ctx.fillStyle = `rgba(99, 102, 241, ${state.accum.sleet * 0.55})`;
+          for (let sx = 6; sx < w; sx += 9) {
+            ctx.beginPath();
+            ctx.arc(sx, groundY - 2, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        if (state.accum.glaze > 0.03) {
+          const glazeH = 4 * state.accum.glaze;
+          ctx.fillStyle = `rgba(125, 211, 252, ${state.accum.glaze * 0.85})`;
+          ctx.fillRect(0, groundY - glazeH, w, glazeH + 1);
+          ctx.fillStyle = `rgba(255, 255, 255, ${state.accum.glaze * 0.75})`;
+          ctx.fillRect(0, groundY - glazeH, w, 1.5);
+        }
+
+        if (state.accum.rain > 0.03) {
+          ctx.fillStyle = `rgba(56, 189, 248, ${state.accum.rain * 0.45})`;
+          ctx.fillRect(0, groundY - 2, w, 3);
+        }
+
+        // Ground Surface Temperature Pill Badge
+        const sfcLabel = `Surface (0.0 km): ${formatTemp(analysis.tSfc, false)}`;
+        ctx.font = '700 11px Inter, sans-serif';
+        const sfcW = ctx.measureText(sfcLabel).width + 16;
+        const sfcY = groundY + 18;
+        ctx.fillStyle = analysis.tSfc <= 0 ? '#0369a1' : '#c2410c';
+        drawRoundedBox((w - sfcW) / 2, sfcY, sfcW, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(sfcLabel, w / 2, sfcY + 14.5);
+      }
+
+      let lastFrameTime = 0;
+      function animationLoop(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+        lastFrameTime = timestamp;
+
+        try {
+          renderAtmosphereFrame(dt, timestamp / 1000);
+        } catch (err) {
+          console.error('Canvas render error:', err);
+        }
+
+        state.animFrameId = requestAnimationFrame(animationLoop);
+      }
+
+      /* =========================================================================
+       * 10. INITIALIZATION ON LOAD
+       * ========================================================================= */
+      function initApp() {
+        buildSoundingGrid();
+        renderSoundingXAxis();
+        buildAlignedSliders();
+        setupSvgDragging();
+        setupControls();
+        updateAll();
+
+        resizeCanvas();
+        initParticles();
+        window.addEventListener('resize', resizeCanvas);
+
+        if (typeof ResizeObserver !== 'undefined' && canvas && canvas.parentElement) {
+          const ro = new ResizeObserver(() => resizeCanvas());
+          ro.observe(canvas.parentElement);
+        }
+
+        state.animFrameId = requestAnimationFrame(animationLoop);
+      }
+
+      if (document.readyState === 'complete') {
+        initApp();
+      } else {
+        window.addEventListener('load', initApp);
+      }
+    })();
+  </script>
+</body>
+</html>
